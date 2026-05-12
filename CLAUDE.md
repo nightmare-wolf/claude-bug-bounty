@@ -4,7 +4,7 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 
 ## What's Here
 
-### Skills (9 domains — load with `/bug-bounty`, `/web2-recon`, `/token-scan`, etc.)
+### Skills (11 domains — load with `/bug-bounty`, `/web2-recon`, `/token-scan`, etc.)
 
 | Skill | Domain |
 |---|---|
@@ -17,8 +17,10 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 | `skills/meme-coin-audit/` | Meme coin rug pull detection, token authority checks, bonding curve exploits, LP attacks |
 | `skills/report-writing/` | H1/Bugcrowd/Intigriti/Immunefi report templates, CVSS 3.1, human tone |
 | `skills/triage-validation/` | 7-Question Gate, 4 gates, never-submit list, conditionally valid table |
+| `skills/burp-analysis/` | Burp .burp file deep analysis — endpoints, LLM params, session tokens, agent pipelines, versioned reports with delta |
+| `skills/red-team-llm/` | **AI/LLM red team battery — 8 attack categories, 40+ prompts, parameter fuzzing, chain-of-thought extraction, versioned report** |
 
-### Commands (14 slash commands)
+### Commands (16 slash commands)
 
 > **Note:** All commands are prefixed to avoid conflicts with Claude Code's built-in commands.
 > `/resume` is a reserved Claude Code command — use `/pickup` to continue a previous hunt.
@@ -39,6 +41,8 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 | `/remember` | `/remember` — log finding to hunt memory |
 | `/intel` | `/intel target.com` — fetch CVE + disclosure intel |
 | `/token-scan` | `/token-scan <contract>` — meme coin/token rug pull scanner |
+| `/burp-analyze` | `/burp-analyze [file.burp]` — analyze Burp file, generate versioned report with delta |
+| `/red-team-llm` | `/red-team-llm <endpoint>` — full AI/LLM red team battery, 8 attack categories, versioned report |
 
 ### Agents (8 specialized agents)
 

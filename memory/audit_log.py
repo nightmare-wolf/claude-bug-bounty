@@ -5,12 +5,15 @@ Append-only JSONL file at hunt-memory/audit.jsonl.
 Used for post-session review and scope compliance verification.
 """
 
-import fcntl
 import json
 import os
 import sys
 import time
 from pathlib import Path
+
+_IS_WIN = sys.platform == "win32"
+if not _IS_WIN:
+    import fcntl
 
 from memory.schemas import validate_audit_entry, make_audit_entry, SchemaError
 
@@ -30,13 +33,15 @@ class AuditLog:
 
         fd = os.open(str(self.path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            if not _IS_WIN:
+                fcntl.flock(fd, fcntl.LOCK_EX)
             try:
                 written = os.write(fd, encoded)
                 if written != len(encoded):
                     raise OSError(f"Partial write: {written}/{len(encoded)} bytes")
             finally:
-                fcntl.flock(fd, fcntl.LOCK_UN)
+                if not _IS_WIN:
+                    fcntl.flock(fd, fcntl.LOCK_UN)
         finally:
             os.close(fd)
 

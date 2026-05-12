@@ -20,10 +20,13 @@ import itertools
 import ipaddress
 import json
 import os
+import platform
 import signal
 import subprocess
 import sys
 from datetime import datetime
+
+_IS_WIN = platform.system() == "Windows"
 
 
 # ── Target type detection (FQDN / single IP / CIDR) ──────────────────────────
@@ -77,48 +80,56 @@ def log(level, msg):
     print(f"{colors.get(level, '')}{BOLD}[{symbols.get(level, '*')}]{NC} {msg}")
 
 
+def _kill_proc(proc) -> None:
+    """Kill a subprocess and its process group (Unix) or just the process (Windows)."""
+    if _IS_WIN:
+        proc.kill()
+    else:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except Exception:
+            proc.kill()
+
+
 def run_cmd(cmd, cwd=None, timeout=600):
     """Run a shell command and return (success, output).
 
-    Uses process groups (os.setsid) so that on timeout the entire child tree
-    is killed via os.killpg, preventing orphan processes from accumulating
-    during long-running hunts.
+    On Unix uses process groups (os.setsid / os.killpg) so the entire child
+    tree is killed on timeout.  On Windows uses proc.kill() instead.
     """
     proc = None
+    popen_kwargs = dict(
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, cwd=cwd,
+    )
+    if not _IS_WIN:
+        popen_kwargs["preexec_fn"] = os.setsid
+
     try:
-        proc = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, cwd=cwd, preexec_fn=os.setsid,
-        )
+        proc = subprocess.Popen(cmd, **popen_kwargs)
         stdout, _ = proc.communicate(timeout=timeout)
         return proc.returncode == 0, stdout or ""
     except subprocess.TimeoutExpired:
         if proc is not None:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except Exception:
-                proc.kill()
+            _kill_proc(proc)
             proc.wait()
         return False, "Command timed out"
     except Exception as e:
         if proc is not None:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except Exception:
-                proc.kill()
+            _kill_proc(proc)
             proc.wait()
         return False, str(e)
 
 
 def check_tools():
     """Check which tools are installed."""
+    import shutil
     tools = ["subfinder", "httpx", "nuclei", "ffuf", "nmap", "amass", "gau", "dalfox", "subjack"]
     installed = []
     missing = []
 
     for tool in tools:
-        success, _ = run_cmd(f"command -v {tool}")
-        if success:
+        if shutil.which(tool):
             installed.append(tool)
         else:
             missing.append(tool)

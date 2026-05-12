@@ -21,6 +21,7 @@ Usage:
 import argparse
 import json
 import os
+import platform
 import re
 import signal
 import subprocess
@@ -30,33 +31,42 @@ import hashlib
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
+_IS_WIN = platform.system() == "Windows"
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FINDINGS_DIR = os.path.join(BASE_DIR, "findings")
 
 
+def _kill_proc(proc) -> None:
+    if _IS_WIN:
+        proc.kill()
+    else:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except Exception:
+            proc.kill()
+
+
 def run_cmd(cmd, timeout=15):
     proc = None
+    popen_kwargs = dict(
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    if not _IS_WIN:
+        popen_kwargs["preexec_fn"] = os.setsid
+
     try:
-        proc = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, preexec_fn=os.setsid,
-        )
+        proc = subprocess.Popen(cmd, **popen_kwargs)
         stdout, stderr = proc.communicate(timeout=timeout)
         return proc.returncode == 0, stdout, stderr
     except subprocess.TimeoutExpired:
         if proc is not None:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except Exception:
-                proc.kill()
+            _kill_proc(proc)
             proc.wait()
         return False, "", "timeout"
     except Exception as e:
         if proc is not None:
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-            except Exception:
-                proc.kill()
+            _kill_proc(proc)
             proc.wait()
         return False, "", str(e)
 

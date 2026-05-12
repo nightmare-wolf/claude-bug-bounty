@@ -37,6 +37,49 @@ which subfinder httpx dnsx nuclei katana waybackurls gau dalfox ffuf anew gf int
 
 ---
 
+## RATE LIMITING — READ BEFORE RUNNING ACTIVE RECON
+
+Passive recon (crt.sh, subfinder, Chaos API, waybackurls, gau) queries external
+databases and never touches the target directly — no rate limiting required.
+
+Active recon (httpx, katana, nuclei, ffuf, naabu, dalfox) sends requests directly
+to the target. Without limits these tools can saturate a server's connection pool,
+exhaust rate-limit counters on the target's WAF, or trigger a temporary outage —
+all of which are out-of-scope on most bug bounty programs and could result in
+report dismissal or a ban.
+
+**Set these variables once at the start of every active session:**
+
+```bash
+# Conservative defaults — adjust up only with explicit written permission
+export RL_HTTP=50         # httpx    — HTTP probes/sec to live hosts
+export RL_CRAWL=10        # katana   — crawl requests/sec
+export RL_NUCLEI=15       # nuclei   — template requests/sec
+export RL_FUZZ=30         # ffuf     — directory fuzz requests/sec
+export RL_PORTS=150       # naabu    — SYN packets/sec (port scan)
+export T_HTTP=25          # httpx    — concurrent threads
+export T_CRAWL=5          # katana   — concurrent crawlers
+export T_NUCLEI=5         # nuclei   — concurrent template runs
+export T_FUZZ=10          # ffuf     — concurrent fuzzing threads
+export DELAY_CRAWL=100    # katana   — ms delay between requests per crawler
+export DELAY_FUZZ=0.05    # ffuf     — seconds pause between requests (-p flag)
+```
+
+**Rate limit reference table:**
+
+| Tool | Flag | Conservative | Moderate | Aggressive* |
+|---|---|---|---|---|
+| httpx | `-rate-limit` | 50 req/s | 150 req/s | 500 req/s |
+| katana | `-rate-limit` | 10 req/s | 30 req/s | 100 req/s |
+| nuclei | `-rate-limit` | 15 req/s | 50 req/s | 150 req/s |
+| ffuf | `-rate` | 30 req/s | 100 req/s | 500 req/s |
+| naabu | `-rate` | 150 pkt/s | 1000 pkt/s | 5000 pkt/s |
+| dalfox | `--delay` | 500 ms | 200 ms | 50 ms |
+
+*Aggressive only with explicit written authorization from the target.
+
+---
+
 ## THE 5-MINUTE RULE
 
 > If a target shows nothing interesting after 5 minutes of recon, move on. Don't burn hours on dead surface.
@@ -54,45 +97,66 @@ which subfinder httpx dnsx nuclei katana waybackurls gau dalfox ffuf anew gf int
 
 ### Pre-Hunt: Always Run First
 
+Steps marked **[PASSIVE]** query external databases and do not touch the target.
+Steps marked **[ACTIVE]** send requests directly to the target — rate limits apply.
+
 ```bash
 TARGET="target.com"
 
-# Step 0: Passive — crt.sh certificate transparency (no API key needed)
+# ── [PASSIVE] Step 0: crt.sh certificate transparency ────────────────────────
+# Queries an external CT log database. Not hitting the target at all.
 curl -s "https://crt.sh/?q=%.${TARGET}&output=json" \
   | jq -r '.[].name_value' \
   | sed 's/\*\.//g' \
   | sort -u > /tmp/subs.txt
 echo "[+] crt.sh: $(wc -l < /tmp/subs.txt) subdomains"
 
-# Step 1: Chaos API (ProjectDiscovery — most comprehensive source)
+# ── [PASSIVE] Step 1: Chaos API + subfinder + assetfinder ────────────────────
+# All three query external APIs/databases. Zero direct requests to the target.
 curl -s "https://dns.projectdiscovery.io/dns/$TARGET/subdomains" \
   -H "Authorization: $CHAOS_API_KEY" \
   | jq -r '.[]' >> /tmp/subs.txt
-
-echo "[+] Chaos returned $(wc -l < /tmp/subs.txt) subdomains"
-
-# Step 2: subfinder (passive multi-source)
 subfinder -d $TARGET -silent | anew /tmp/subs.txt
 assetfinder --subs-only $TARGET | anew /tmp/subs.txt
+echo "[+] Total subdomains after all passive sources: $(wc -l < /tmp/subs.txt)"
 
-echo "[+] Total subdomains after all sources: $(wc -l < /tmp/subs.txt)"
+# ── [PASSIVE] Step 2: DNS resolution ─────────────────────────────────────────
+# Queries DNS resolvers, not the target web servers. High concurrency is fine.
+cat /tmp/subs.txt | dnsx -silent -t 50 | tee /tmp/resolved.txt
 
-# Step 3: DNS resolution + live host check
-cat /tmp/subs.txt | dnsx -silent | httpx -silent -status-code -title -tech-detect | tee /tmp/live.txt
-
+# ── [ACTIVE] Step 3: Live host HTTP probing ───────────────────────────────────
+# Sends HTTP requests directly to target hosts — enforce rate limit.
+cat /tmp/resolved.txt \
+  | httpx -silent -status-code -title -tech-detect \
+          -rate-limit ${RL_HTTP:-50} \
+          -threads ${T_HTTP:-25} \
+  | tee /tmp/live.txt
 echo "[+] Live hosts: $(wc -l < /tmp/live.txt)"
 
-# Step 4: URL crawl
-cat /tmp/live.txt | awk '{print $1}' | katana -d 3 -jc -kf all -silent | anew /tmp/urls.txt
+# ── [ACTIVE] Step 4: URL crawl ────────────────────────────────────────────────
+# katana actively spiders live hosts — rate limited to avoid flooding.
+cat /tmp/live.txt | awk '{print $1}' \
+  | katana -d 3 -jc -kf all -silent \
+           -rate-limit ${RL_CRAWL:-10} \
+           -c ${T_CRAWL:-5} \
+           -delay ${DELAY_CRAWL:-100} \
+  | anew /tmp/urls.txt
 
-# Step 5: Historical URLs
+# ── [PASSIVE] Step 5: Historical URLs ────────────────────────────────────────
+# waybackurls and gau query Wayback Machine / Common Crawl — not the target.
 echo $TARGET | waybackurls | anew /tmp/urls.txt
 gau $TARGET --subs | anew /tmp/urls.txt
-
 echo "[+] Total URLs: $(wc -l < /tmp/urls.txt)"
 
-# Step 6: Nuclei scan
-nuclei -l /tmp/live.txt -t ~/nuclei-templates/ -severity critical,high,medium -o /tmp/nuclei.txt
+# ── [ACTIVE] Step 6: Nuclei scan ─────────────────────────────────────────────
+# Sends active payloads to target — most DOS-prone step. Always rate limit.
+nuclei -l /tmp/live.txt \
+       -t ~/nuclei-templates/ \
+       -severity critical,high,medium \
+       -rate-limit ${RL_NUCLEI:-15} \
+       -c ${T_NUCLEI:-5} \
+       -bs 5 \
+       -o /tmp/nuclei.txt
 ```
 
 ### Output to Organized Directory
@@ -183,17 +247,24 @@ deactivate
 
 ---
 
-## DIRECTORY FUZZING
+## DIRECTORY FUZZING — ACTIVE
 
-### ffuf — Standard Fuzzing
+ffuf sends a request per wordlist entry directly to the target. At default thread
+counts it can easily exceed 500 req/s — enough to degrade small targets.
+Always set `-rate` and keep `-t` low.
+
+### ffuf — Rate-Limited Fuzzing
 
 ```bash
-# Directory discovery on a live host
+# Directory discovery — conservative rate
+# -rate caps total req/s across all threads; -p adds per-request pause
 ffuf -u "https://target.com/FUZZ" \
      -w ~/wordlists/common.txt \
      -mc 200,201,204,301,302,307,401,403 \
      -ac \
-     -t 40 \
+     -rate ${RL_FUZZ:-30} \
+     -t ${T_FUZZ:-10} \
+     -p ${DELAY_FUZZ:-0.05} \
      -o /tmp/ffuf-dirs.json
 
 # API endpoint discovery
@@ -201,16 +272,21 @@ ffuf -u "https://target.com/api/FUZZ" \
      -w ~/wordlists/api-endpoints.txt \
      -mc 200,201,204,301,302 \
      -ac \
-     -t 20
+     -rate ${RL_FUZZ:-30} \
+     -t ${T_FUZZ:-10} \
+     -p ${DELAY_FUZZ:-0.05}
 
 # IDOR fuzzing with authenticated request
 # Create req.txt with Authorization: Bearer TOKEN
+# Lower rate for IDOR — each hit is a real DB query on the target
 ffuf -request /tmp/req.txt \
      -request-proto https \
      -w <(seq 1 10000) \
      -fc 404 \
      -ac \
-     -t 10
+     -rate 20 \
+     -t 5 \
+     -p 0.1
 ```
 
 ---
@@ -333,12 +409,21 @@ fi
 
 ---
 
-## PORT SCANNING (often skipped — don't skip)
+## PORT SCANNING — ACTIVE (often skipped — don't skip)
+
+naabu sends SYN packets directly to the target. Uncapped, it can reach tens of
+thousands of packets/sec and look like a DoS to IDS/WAF systems. Keep `-rate`
+at 150 or below unless you have explicit authorization for aggressive scanning.
 
 ```bash
-# naabu — fast port scanner from ProjectDiscovery
+# naabu — rate-limited port scan
 # Finds non-standard ports: 8080, 8443, 3000, 8888, 9000, etc.
-cat /tmp/live.txt | awk '{print $1}' | naabu -port 80,443,8080,8443,3000,4000,5000,8000,8888,9000,9090,9200,6379 -silent | tee /tmp/open-ports.txt
+cat /tmp/live.txt | awk '{print $1}' \
+  | naabu \
+      -port 80,443,8080,8443,3000,4000,5000,8000,8888,9000,9090,9200,6379 \
+      -rate ${RL_PORTS:-150} \
+      -silent \
+  | tee /tmp/open-ports.txt
 
 # Why this matters: admin panels, debug services, internal APIs often run on alt ports
 # Example wins: :8080/actuator/env (Spring Boot), :9200/_cat/indices (Elasticsearch), :6379 (Redis)

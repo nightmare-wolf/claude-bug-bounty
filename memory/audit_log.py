@@ -15,21 +15,31 @@ _IS_WIN = sys.platform == "win32"
 if not _IS_WIN:
     import fcntl
 
+from memory.rotation import DEFAULT_KEEP, DEFAULT_MAX_BYTES, rotate_if_needed
 from memory.schemas import validate_audit_entry, make_audit_entry, SchemaError
 
 
 class AuditLog:
     """Append-only audit log for tracking outbound requests."""
 
-    def __init__(self, path: str | Path):
+    def __init__(
+        self,
+        path: str | Path,
+        max_bytes: int = DEFAULT_MAX_BYTES,
+        keep_backups: int = DEFAULT_KEEP,
+    ):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.max_bytes = max_bytes
+        self.keep_backups = keep_backups
 
     def log(self, entry: dict) -> None:
         """Validate and append an audit entry."""
         validated = validate_audit_entry(entry)
         line = json.dumps(validated, separators=(",", ":")) + "\n"
         encoded = line.encode("utf-8")
+
+        rotate_if_needed(self.path, max_bytes=self.max_bytes, keep=self.keep_backups)
 
         fd = os.open(str(self.path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
         try:
@@ -55,7 +65,16 @@ class AuditLog:
         session_id: str | None = None,
         error: str | None = None,
     ) -> None:
-        """Convenience method to create and log an audit entry."""
+        """Convenience method to create and log an audit entry.
+
+        If session_id is None, falls back to the BBHUNT_SESSION_ID env var
+        (set by tools/auth_session.py + _auth_helper.sh) so authenticated
+        requests get tagged with a stable, non-secret hash automatically.
+        """
+        if session_id is None:
+            env_sid = os.environ.get("BBHUNT_SESSION_ID")
+            if env_sid:
+                session_id = env_sid
         entry = make_audit_entry(
             url=url,
             method=method,

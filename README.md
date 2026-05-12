@@ -4,41 +4,39 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/v4.1.0-Bionic_Hunter-blueviolet?style=for-the-badge" alt="v4.1.0">
+<img src="https://img.shields.io/badge/v4.3.0-Auth_Sessions_%2B_Arsenal-blueviolet?style=for-the-badge" alt="v4.3.0">
 
 # Claude Bug Bounty
 
 ### Find security vulnerabilities, get paid — with AI doing the heavy lifting
 
 *Your AI hunting partner that remembers past targets, spots vulnerabilities, and writes reports for you.*
-<br>
-*The community made a meme coin to support the project CA: J6VzBAGnyyNEyzyHhauwg3ofRctFxnTLzQCcjUdGpump*
+
 <sub>by <a href="https://shuvonsec.me">shuvonsec</a></sub>
 
 <br>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-3776AB.svg?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![Tests](https://img.shields.io/badge/Tests-129_passing-brightgreen.svg?style=flat-square)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-180_passing-brightgreen.svg?style=flat-square)](tests/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-D97706.svg?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/claude-code)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](#contributing)
 
 <br>
 
-<a href="#-what-is-this">What Is This?</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#-quick-start">Quick Start</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#-commands">Commands</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#-whats-new">What's New</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="#-installation">Install</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="FAQ.md">FAQ</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="TERMS.md">Terms</a>
+<a href="#-what-is-this">What Is This?</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#-quick-start">Quick Start</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#-commands">Commands</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#-whats-new">What's New</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#-installation">Install</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="FAQ.md">FAQ</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="TERMS.md">Terms</a>
 
 <br>
 
-```
-  14 commands  ·  8 AI agents  ·  9 skill domains
-  20 web2 vuln classes  ·  10 web3 bug classes
-  Burp MCP  ·  HackerOne MCP  ·  Autonomous Mode
-```
+![Commands](https://img.shields.io/badge/commands-23-D97706?style=flat-square)
+![Agents](https://img.shields.io/badge/AI_agents-8-blueviolet?style=flat-square)
+![Skills](https://img.shields.io/badge/skill_domains-9-3776AB?style=flat-square)
+![Web2](https://img.shields.io/badge/web2_classes-20-brightgreen?style=flat-square)
+![Web3](https://img.shields.io/badge/web3_classes-10-yellow?style=flat-square)
+
+<sub>Burp MCP &nbsp;·&nbsp; Caido MCP &nbsp;·&nbsp; HackerOne MCP &nbsp;·&nbsp; Auth-aware hunting &nbsp;·&nbsp; Autonomous mode</sub>
 
 </div>
-
-<br>
-
----
 
 <br>
 
@@ -61,46 +59,25 @@
 
 <br>
 
----
+## Before vs. After
 
-<br>
-
-## The Problem (Before This Tool)
-
-Most hunters waste hours on things that shouldn't take that long:
-
-- Manually running 10+ tools in the right order just to map a target
-- Writing the same report structure from scratch every single time (45 min each)
-- Forgetting that a technique worked on a similar target 3 months ago
-- Submitting bugs that get rejected because they weren't properly validated first
-- Jumping between terminal windows, browser, notes, and report drafts
-
-<br>
-
-## The Solution (After This Tool)
-
-<div align="center">
+Most hunters waste hours on things that shouldn't take that long. Here's the shift:
 
 | Before | After |
 |:---|:---|
 | Run 10+ tools manually, hope for the best | AI orchestrates everything in the right order |
-| Write reports from scratch (45 min each) | Report-writer agent generates submission-ready reports in 60s |
+| Write reports from scratch (45 min each) | `report-writer` agent generates submission-ready reports in 60s |
 | Forget what worked last month | **Memory system** — patterns from target A inform target B |
 | Submit bugs without proper validation | **7-Question Gate** kills weak findings before you waste time reporting |
-| Can't see live browser traffic | **Burp MCP** — AI reads your proxy history in real time |
+| Can't see live browser traffic | **Burp MCP** or **Caido MCP** — AI reads your proxy history in real time |
 | Hunt one endpoint at a time | **`/autopilot`** runs the full hunt loop while you watch |
-
-</div>
-
-<br>
-
----
+| Anonymous recon misses auth-only bugs | **Auth-aware pipeline** — set a session once, httpx/katana/ffuf/nuclei all carry it |
 
 <br>
 
 ## Quick Start
 
-> **Prerequisite:** You need [Claude Code](https://claude.ai/claude-code) installed. It's Anthropic's free AI coding tool that runs in your terminal.
+> **Prerequisite:** You need [Claude Code](https://claude.ai/claude-code) installed and a Claude **Pro** or **Max** plan (or an Anthropic API key with credit). Claude Code itself is free to install, but the underlying model usage requires a paid plan or API billing — the free Claude.ai web account does not include Claude Code access.
 
 **Step 1 — Install tools + skills**
 
@@ -142,45 +119,25 @@ claude                          # open Claude Code in your terminal
 
 <br>
 
----
-
-<br>
-
 ## How It Works
 
-Think of it like a team of specialists, each doing one job:
+A team of specialists, each doing one job. Claude orchestrates; memory persists across sessions.
 
-```
-                        YOU
-                         |
-                   ┌─────▼─────┐
-                   │   Claude   │ ◄── Burp MCP (sees your browser traffic)
-                   │   Code     │ ◄── HackerOne MCP (program intel)
-                   └─────┬─────┘
-                         |
-         ┌───────────────┼───────────────┐
-         |               |               |
-   ┌─────▼─────┐  ┌──────▼──────┐  ┌────▼────┐
-   │   Recon    │  │    Hunt     │  │ Report  │
-   │  (map it)  │  │  (test it)  │  │(write it│
-   └─────┬─────┘  └──────┬──────┘  └────┬────┘
-         |               |               |
-   finds all         checks for      formats for
-   subdomains,       vulnerabilities  HackerOne /
-   URLs, APIs        & validates      Bugcrowd /
-                     findings         Immunefi
-         |               |               |
-   ┌─────▼───────────────▼───────────────▼─────┐
-   │              Hunt Memory                   │
-   │   remembers everything across sessions     │
-   └────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    You([You]) --> Claude[Claude Code]
+    Burp[Burp MCP<br/>browser traffic] -.-> Claude
+    H1[HackerOne MCP<br/>program intel] -.-> Claude
+    Claude --> Recon[Recon<br/>subdomains · URLs · APIs]
+    Claude --> Hunt[Hunt<br/>test &amp; validate]
+    Claude --> Report[Report<br/>H1 · Bugcrowd · Immunefi]
+    Recon --> Memory[(Hunt Memory<br/>persistent across sessions)]
+    Hunt --> Memory
+    Report --> Memory
+    Memory -.feeds back.-> Claude
 ```
 
-Each step feeds the next. Claude orchestrates all of it, or you run any step on its own.
-
-<br>
-
----
+Run the whole loop, or any step on its own.
 
 <br>
 
@@ -188,31 +145,43 @@ Each step feeds the next. Claude orchestrates all of it, or you run any step on 
 
 ### The Core 4 (start here)
 
-| Command | What It Does | When To Use |
-|:---|:---|:---|
-| `/recon target.com` | Maps the target — finds all subdomains, live pages, APIs, and runs basic scans | Always first |
-| `/hunt target.com` | Actively tests for vulnerabilities using the right technique for the tech stack | After recon |
-| `/validate` | Runs a 7-question check to confirm a finding is real before you write it up | Before every report |
-| `/report` | Generates a professional submission report for H1/Bugcrowd/Intigriti/Immunefi | After validation |
+| Command | Argument | What It Does | When |
+|:---|:---|:---|:---|
+| `/recon` | `target.com` | Maps subdomains, live pages, APIs, and runs basic scans | Always first |
+| `/hunt` | `target.com` | Tests for vulns using the right technique per tech stack | After recon |
+| `/validate` | — | 7-question check before you write the report | Pre-report |
+| `/report` | — | Generates H1 · Bugcrowd · Intigriti · Immunefi report | Post-validation |
 
 ### Power Commands
 
 | Command | What It Does |
 |:---|:---|
-| `/autopilot target.com` | AI runs the full loop automatically — recon → hunt → validate → report |
-| `/surface target.com` | Shows a ranked list of the best places to test (based on your past findings) |
-| `/pickup target.com` | Shows untested endpoints from last session and picks up where you left off |
+| `/autopilot target.com` | AI runs the full loop autonomously — recon → hunt → validate → report |
+| `/surface target.com` | Ranked list of the best places to test (informed by past findings) |
+| `/pickup target.com` | Untested endpoints from last session — pick up where you left off |
 | `/remember` | Saves the current finding or technique to memory for future use |
-| `/intel target.com` | Pulls CVEs and past disclosed reports relevant to this target |
-| `/chain` | When you find bug A, this finds bugs B and C that usually come with it |
+| `/intel target.com` | Pulls CVEs and disclosed reports relevant to this target |
+| `/chain` | When you find bug A, finds the bugs B and C that usually come with it |
 | `/scope <asset>` | Checks if a domain or URL is in scope before you test it |
-| `/triage` | Quick 2-minute go/no-go check — should you keep investigating or move on? |
-| `/web3-audit <contract>` | Full smart contract security audit with 10 bug class checklist |
-| `/token-scan <contract>` | Scans a meme coin or token for rug pull signals (EVM + Solana) |
+| `/triage` | Quick 2-minute go/no-go check — keep investigating or move on? |
+| `/web3-audit <contract>` | Full smart contract security audit, 10 bug class checklist |
+| `/token-scan <contract>` | Scans a meme coin / token for rug pull signals (EVM + Solana) |
+| `/memory-gc` | Inspect or rotate hunt-memory JSONL files (10 MB cap, keeps 3 backups) |
 
-<br>
+### Recon Toolkit (v4.3)
 
----
+Thin wrappers over external tools. Each one is gated on tool presence — missing tools are skipped, not errors.
+
+| Command | What It Does |
+|:---|:---|
+| `/scope-aggregate <program>` | Pulls every in-scope asset across H1 · Bugcrowd · Intigriti · YWH · Immunefi (bbscope + bounty-targets-data) |
+| `/secrets-hunt --js-bundle <dir>` | Leaked credentials in source, JS bundles, or a GitHub org (trufflehog · noseyparker · gitleaks) |
+| `/takeover --recon <dir>` | Subdomain takeover candidates from a recon run (dnsReaper · subjack) |
+| `/cloud-recon --keyword <name>` | Public S3 · Azure · GCP buckets + CloudFlare-bypass origin IPs |
+| `/param-discover <url>` | Hidden HTTP parameters (Arjun · x8) |
+| `/bypass-403 <url>` | Header · method · encoding tricks against a 403/401 |
+| `/scan-cves <host>` | Focused nuclei high/critical sweep + optional log4j-scan |
+| `/arsenal [tool]` | Lists installed external tools or prints an install hint |
 
 <br>
 
@@ -233,11 +202,21 @@ Each step feeds the next. Claude orchestrates all of it, or you run any step on 
 
 <br>
 
----
-
-<br>
-
 ## What's New
+
+### v4.3.0 — Auth Sessions + Recon Arsenal (May 2026)
+
+- **Auth-aware hunting.** Set a session once (`--cookie`, `--bearer`, env vars, or `.private/target.json`) and every downstream tool that takes auth — httpx, katana, ffuf, nuclei, dalfox, the SQLi/SSTI/upload PoC probes — carries it. Most paying bugs (IDOR, BOLA, mass assignment, SSRF behind a login) only exist after login; the default pipeline used to miss them. See [`docs/auth-sessions.md`](docs/auth-sessions.md).
+- **8 new commands.** `/scope-aggregate`, `/secrets-hunt`, `/takeover`, `/cloud-recon`, `/param-discover`, `/bypass-403`, `/scan-cves`, `/arsenal` — all under the **Recon Toolkit** table below.
+- **External tool registry.** `tools/external_arsenal.sh` is the single source of truth for ~50 external tools (install hints, upstream URLs, `_have <tool>` helper). Replaces scattered `command -v` checks across the shell scripts.
+- **Recon pipeline.** Optional nuclei phase in `recon_engine.sh` (off by default; gated on tool presence).
+- **Methodology cheatsheet.** `skills/security-arsenal/METHODOLOGY_CHEATSHEET.md` distills per-vuln quick-check tables from HowToHunt + HolyTips + AllAboutBugBounty + KingOfBugBountyTips into one reference.
+
+### v4.2.0 — Memory Rotation (Apr 2026)
+
+- **Auto-rotation for hunt memory** — `audit.jsonl`, `patterns.jsonl`, and `journal.jsonl` no longer grow forever. Files rotate at 10 MB and keep 3 backups, fully transparent to writers (safe under `fcntl.LOCK_EX` for concurrent processes).
+- **`/memory-gc`** — new slash command to inspect, force-rotate, or purge backup files in the hunt-memory tree.
+- **22 new tests** covering rotation primitives, multi-process concurrent writes, and disk-full `OSError` propagation.
 
 ### v4.1.0 — Auto-Memory + README (Apr 2026)
 
@@ -276,10 +255,6 @@ Each step feeds the next. Claude orchestrates all of it, or you run any step on 
 - NoSQL injection, command injection, SSTI, HTTP smuggling, WebSocket payloads added to arsenal
 
 </details>
-
-<br>
-
----
 
 <br>
 
@@ -339,10 +314,6 @@ These are bugs in blockchain smart contracts, common on Immunefi:
 
 <br>
 
----
-
-<br>
-
 ## Installation
 
 ### What You Need First
@@ -355,7 +326,7 @@ brew install go python3 node jq
 sudo apt install golang python3 nodejs jq
 ```
 
-You also need [Claude Code](https://claude.ai/claude-code) installed and a free account.
+You also need [Claude Code](https://claude.ai/claude-code) installed and a **Claude Pro or Max plan** (or an Anthropic API key with credit). The free Claude.ai web account does not include Claude Code access — that's the model billing, not the CLI.
 
 ### Install
 
@@ -396,10 +367,6 @@ Add to `~/.config/subfinder/config.yaml`:
 
 <br>
 
----
-
-<br>
-
 ## The Rules (Always Active)
 
 These apply every session, no exceptions:
@@ -416,10 +383,6 @@ These apply every session, no exceptions:
 
 <br>
 
----
-
-<br>
-
 ## Related Projects
 
 | Repo | What It's For |
@@ -427,10 +390,6 @@ These apply every session, no exceptions:
 | **[claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty)** | This — full hunting pipeline from recon to report |
 | **[web3-bug-bounty-hunting-ai-skills](https://github.com/shuvonsec/web3-bug-bounty-hunting-ai-skills)** | Smart contract security — 10 bug classes, Foundry PoC templates |
 | **[public-skills-builder](https://github.com/shuvonsec/public-skills-builder)** | Turns 500+ public bug writeups into Claude skill files |
-
-<br>
-
----
 
 <br>
 
@@ -448,31 +407,20 @@ git commit -m "Add: short description"
 git push origin feature/your-contribution
 ```
 
-<br>
-
 ---
-
-<br>
 
 <div align="center">
 
 ### Connect
 
-[GitHub](https://github.com/shuvonsec) &nbsp;&nbsp;|&nbsp;&nbsp; [Twitter](https://x.com/shuvonsec) &nbsp;&nbsp;|&nbsp;&nbsp; [LinkedIn](https://linkedin.com/in/shuvonsec) &nbsp;&nbsp;|&nbsp;&nbsp; [Email](mailto:shuvonsec@gmail.com)
+[GitHub](https://github.com/shuvonsec) &nbsp;·&nbsp; [Twitter](https://x.com/shuvonsec) &nbsp;·&nbsp; [LinkedIn](https://linkedin.com/in/shuvonsec) &nbsp;·&nbsp; [shuvonsec@gmail.com](mailto:shuvonsec@gmail.com)
 
 <br>
 
----
-
-**For authorized security testing only.** Only test targets within an approved bug bounty program scope.<br>
-Never test systems without explicit written permission. Follow responsible disclosure.
-
----
+**Built by bug hunters, for bug hunters.** &nbsp;·&nbsp; If this helped you find a bug, [leave a star ⭐](https://github.com/shuvonsec/claude-bug-bounty)
 
 <br>
 
-MIT License · **Built by bug hunters, for bug hunters.**
-
-If this helped you find a bug, leave a star ⭐
+<sub>MIT License · For authorized security testing only. Test only within an approved bug bounty program scope. Never test systems without explicit written permission. Follow responsible disclosure.</sub>
 
 </div>

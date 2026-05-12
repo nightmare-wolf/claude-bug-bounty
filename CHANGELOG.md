@@ -1,5 +1,53 @@
 # Changelog
 
+## v4.2.3 — Auto-rotation Stop Hook (May 2026)
+
+### Added
+- **`.claude/settings.json`** with a `Stop` hook that runs `python3 -m tools.memory_gc --rotate` (quietly, non-blocking via `async: true`) whenever a Claude Code session ends. Long-running hunts that never trigger an inline write-time rotation now still get GC'd at session end. Hook is a no-op if `tools/memory_gc.py` is missing or the working dir isn't the repo root, so it is safe to ship in the project file.
+
+---
+
+## v4.2.2 — Restore ReconAdapter (May 2026)
+
+### Fixed
+- **`tools/recon_adapter.py`** was missing the `ReconAdapter` class that `tests/test_recon_adapter.py` imports — the test file had been silently uncollectable since the rename in 0db9640. Added the class with read accessors for the subdir-nested layout that `recon_engine.sh` writes (`subdomains/all.txt`, `live/urls.txt`, `urls/with_params.txt`, `js/potential_secrets.txt`, etc.), graphql extraction, fallback path resolution, summary counts, and a `normalize()` method that creates the derived files brain.py expects (`priority/`, `api_specs/`, `urls/graphql.txt`, `subdomains/resolved.txt`).
+
+### Tests
+- 31 previously-uncollectable tests in `tests/test_recon_adapter.py` now run and pass. Suite total: **215 passing** (was 184).
+
+---
+
+## v4.2.1 — PatternDB Perf Fix (May 2026)
+
+### Fixed
+- **`PatternDB.save()` was O(n²)** — every save re-read the entire JSONL file to dedup. At 10k entries this pegged CPU for 5+ minutes per insert pass. Replaced with an in-memory dedup index of `(target, vuln_class, technique)` tuples, populated lazily on first save and updated per write. 10k saves now complete in ~2 seconds instead of 5+ minutes.
+
+### Added
+- `tests/test_pattern_db.py::TestPatternPerformance`: 4 new tests covering the perf bound, dedup correctness at 10k entries, lazy-load via reopen, and corrupted-line resilience.
+
+### Resolved
+- **TODO-8 (final item)** — `PatternDB.save()` performance test at 10,000 entries.
+
+---
+
+## v4.2.0 — Memory Rotation (Apr 2026)
+
+### Added
+- `memory/rotation.py`: size-based JSONL rotator under `fcntl.LOCK_EX`. Default cap 10 MB, keep 3 backups.
+- `tools/memory_gc.py` + `/memory-gc` slash command: scan, rotate, or purge backups across the hunt-memory tree.
+- `tests/test_rotation.py`: 22 tests covering rotation primitives, auto-rotation in `AuditLog`/`PatternDB`, multi-process concurrent writes (with and without rotation), and disk-full OSError propagation.
+
+### Changed
+- `memory/audit_log.py` `AuditLog.log()`: calls `rotate_if_needed` before each append.
+- `memory/pattern_db.py` `PatternDB.save()`: calls `rotate_if_needed` before each append.
+- `memory/__init__.py`: exports rotation helpers.
+
+### Resolved
+- **TODO-7** — memory GC / rotation policy.
+- **TODO-8** (partial) — concurrent-write stress test + disk-full OSError propagation test.
+
+---
+
 ## v4.1.0 — Patch: Bug Fixes + Assets (Apr 2026)
 
 ### Fixed

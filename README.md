@@ -28,9 +28,9 @@
 
 <br>
 
-![Commands](https://img.shields.io/badge/commands-23-D97706?style=flat-square)
-![Agents](https://img.shields.io/badge/AI_agents-8-blueviolet?style=flat-square)
-![Skills](https://img.shields.io/badge/skill_domains-9-3776AB?style=flat-square)
+![Commands](https://img.shields.io/badge/commands-24-D97706?style=flat-square)
+![Agents](https://img.shields.io/badge/AI_agents-9-blueviolet?style=flat-square)
+![Skills](https://img.shields.io/badge/skill_domains-10-3776AB?style=flat-square)
 ![Web2](https://img.shields.io/badge/web2_classes-20-brightgreen?style=flat-square)
 ![Web3](https://img.shields.io/badge/web3_classes-10-yellow?style=flat-square)
 
@@ -166,6 +166,7 @@ Run the whole loop, or any step on its own.
 | `/triage` | Quick 2-minute go/no-go check — keep investigating or move on? |
 | `/web3-audit <contract>` | Full smart contract security audit, 10 bug class checklist |
 | `/token-scan <contract>` | Scans a meme coin / token for rug pull signals (EVM + Solana) |
+| `/osint <seed> [--people\|--corp\|--both]` | People + corporate OSINT — registries, beneficial ownership, sanctions/PEP, ASN/BGP, social/email/breach exposure → entity graph + dossier |
 | `/memory-gc` | Inspect or rotate hunt-memory JSONL files (10 MB cap, keeps 3 backups) |
 
 ### Recon Toolkit (v4.3)

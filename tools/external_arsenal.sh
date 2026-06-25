@@ -88,9 +88,19 @@ ARSENAL_TOOLS=(
   "jadx|mobile|brew install jadx|github.com/skylot/jadx"
   # ── Static analysis ─────────────────────────────────────────────────────
   "semgrep|sast|brew install semgrep|github.com/semgrep/semgrep"
-  # ── OSINT ───────────────────────────────────────────────────────────────
+  # ── OSINT (people + corporate — see skills/osint) ───────────────────────
   "maigret|osint|pipx install maigret|github.com/soxoj/maigret"
   "pywhat|osint|pipx install pywhat|github.com/bee-san/pyWhat"
+  "spiderfoot|osint|git clone https://github.com/smicallef/spiderfoot ~/tools/spiderfoot \&\& cd ~/tools/spiderfoot \&\& python3 -m venv .venv \&\& . .venv/bin/activate \&\& pip install -r requirements.txt|github.com/smicallef/spiderfoot"
+  "recon-ng|osint|pipx install recon-ng|github.com/lanmaster53/recon-ng"
+  "sherlock|osint|pipx install sherlock-project|github.com/sherlock-project/sherlock"
+  "holehe|osint|pipx install holehe|github.com/megadose/holehe"
+  "socialscan|osint|pip install socialscan|github.com/iojw/socialscan"
+  "phoneinfoga|osint|brew install phoneinfoga|github.com/sundowndev/phoneinfoga"
+  "ghunt|osint|pipx install ghunt|github.com/mxrch/GHunt"
+  "crosslinked|osint|pipx install crosslinked|github.com/m8sec/CrossLinked"
+  "exiftool|osint|brew install exiftool|github.com/exiftool/exiftool"
+  "shodan|osint|pipx install shodan|github.com/achillean/shodan-python"
   # ── DNS history / origin IP ─────────────────────────────────────────────
   "sublert|recon|pipx install sublert|github.com/yassineaboukir/sublert"
   # ── Misc ────────────────────────────────────────────────────────────────

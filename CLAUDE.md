@@ -4,7 +4,7 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 
 ## What's Here
 
-### Skills (11 domains — load with `/bug-bounty`, `/web2-recon`, `/token-scan`, etc.)
+### Skills (12 domains — load with `/bug-bounty`, `/web2-recon`, `/token-scan`, etc.)
 
 | Skill | Domain |
 |---|---|
@@ -19,8 +19,9 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 | `skills/triage-validation/` | 7-Question Gate, 4 gates, never-submit list, conditionally valid table |
 | `skills/burp-analysis/` | Burp .burp file deep analysis — endpoints, LLM params, session tokens, agent pipelines, versioned reports with delta |
 | `skills/red-team-llm/` | **AI/LLM red team battery — 8 attack categories, 40+ prompts, parameter fuzzing, chain-of-thought extraction, versioned report** |
+| `skills/osint/` | **People + corporate OSINT — Maltego-style entity transforms over free sources (registries, beneficial ownership, sanctions/PEP, ASN/BGP, social/email/breach exposure), Mermaid entity graph, versioned dossier. NOT attack-surface recon** |
 
-### Commands (25 slash commands)
+### Commands (26 slash commands)
 
 > **Note:** All commands are prefixed to avoid conflicts with Claude Code's built-in commands.
 > `/resume` is a reserved Claude Code command — use `/pickup` to continue a previous hunt.
@@ -44,6 +45,7 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 | `/token-scan` | `/token-scan <contract>` — meme coin/token rug pull scanner |
 | `/burp-analyze` | `/burp-analyze [file.burp]` — analyze Burp file, generate versioned report with delta |
 | `/red-team-llm` | `/red-team-llm <endpoint>` — full AI/LLM red team battery, 8 attack categories, versioned report |
+| `/osint` | `/osint <email\|username\|company\|domain\|ip\|phone> [--people\|--corp\|--both]` — people + corporate OSINT, entity graph, versioned dossier |
 | `/memory-gc` | `/memory-gc [--rotate|--purge-backups]` — inspect/rotate hunt-memory JSONL files (10MB cap, 3 backups) |
 | `/secrets-hunt` | `/secrets-hunt --js-bundle <recon-dir>` — leaked-credential scan (trufflehog/noseyparker/gitleaks) |
 | `/takeover` | `/takeover --recon <recon-dir>` — subdomain takeover candidates (dnsReaper/subjack) |
@@ -53,7 +55,7 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 | `/arsenal` | `/arsenal [tool]` — list installed external tools or get an install hint |
 | `/scan-cves` | `/scan-cves <host>` — focused nuclei CVE sweep (high/critical) + optional log4j-scan |
 
-### Agents (8 specialized agents)
+### Agents (9 specialized agents)
 
 - `recon-agent` — subdomain enum + live host discovery
 - `report-writer` — generates H1/Bugcrowd/Immunefi reports
@@ -63,6 +65,7 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 - `autopilot` — autonomous hunt loop (scope→recon→rank→hunt→validate→report)
 - `recon-ranker` — attack surface ranking from recon output + memory
 - `token-auditor` — fast meme coin/token rug pull and security analysis
+- `osint-agent` — people + corporate OSINT specialist (entity transforms, Mermaid graph, dossier)
 
 ### Rules (always active)
 
@@ -88,6 +91,7 @@ This repo is a Claude Code plugin for professional bug bounty hunting across Hac
 - `tools/external_arsenal.sh` — installed-tool registry (~50 tools); other scripts source this for `_have <tool>`
 - `tools/cicd_scanner.sh` — GitHub Actions workflow scanner (sisakulint wrapper, remote scan)
 - `tools/token_scanner.py` — automated token red flag scanner (EVM + Solana)
+- `tools/osint_engine.sh` — people + corporate OSINT engine (registries, ownership, sanctions, ASN/BGP, social/email/breach — free sources, graceful key fallback)
 
 ### External tool references
 

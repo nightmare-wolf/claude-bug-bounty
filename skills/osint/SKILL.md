@@ -45,34 +45,43 @@ fuzzing, or nuclei from this skill. Those belong to `web2-recon`. If you need th
 > source. Check it at the start of every run to see which keys the user has provided, then
 > export the matching env vars. Skip any source left blank.
 
-Everything below has a **free tier or is fully free**. Nothing here is required to start —
-the engine degrades gracefully and skips any source whose key is missing. Set what you have:
+Nothing here is required to start — the engine degrades gracefully, and where a once-free
+source went paid it **falls back to a free source automatically**. Set what you have:
 
 ```bash
 # ── No key required (work out of the box) ───────────────────────────────────
-#   BGPView, GLEIF, OpenOwnership (bulk), DNSDumpster (HackerTarget free),
+#   RDAP (rdap.org — WHOIS), Hudson Rock (free infostealer exposure), ipwho.is (IP/ASN),
+#   DNS SaaS fingerprint (dig), BGPView, GLEIF, OpenOwnership (bulk), DNSDumpster,
 #   sherlock, maigret, holehe, socialscan, PhoneInfoga, theHarvester (core),
 #   recon-ng (core), SpiderFoot (core), exiftool, Google dorking, OSINT Framework
 
-# ── Free-tier keys (recommended — big coverage boost) ───────────────────────
-export SHODAN_API_KEY=""           # account free, limited credits — internet asset intel
-export CENSYS_API_ID=""            # free tier — host/cert intel
-export CENSYS_API_SECRET=""
-export SECURITYTRAILS_API_KEY=""   # free 50 queries/mo — DNS + WHOIS history
-export BUILTWITH_API_KEY=""        # free tier — tech-stack profiling (or use free web lookup)
-export IPINFO_TOKEN=""             # free 50k/mo — ASN/geo/org enrichment
+# ── Genuinely-free keys (recommended — real coverage boost) ─────────────────
+export SHODAN_API_KEY=""           # free account, limited credits — internet asset intel
+export CENSYS_PLATFORM_TOKEN=""    # free Censys PLATFORM account → PAT (platform.censys.io); no org ID on free
+export IPINFO_TOKEN=""             # free 50k/mo — ASN/geo/org (else engine uses ipwho.is, free)
 export HUNTER_API_KEY=""           # free 25/mo — email pattern + verification
-export GITHUB_TOKEN=""             # free — powers recon-ng/theHarvester GitHub modules
-export OPENCORPORATES_API_KEY=""   # free for journalists/researchers (apply) — company registry
-export OPENSANCTIONS_API_KEY=""    # hosted API key, OR self-host `yente` free (no key)
+export GITHUB_TOKEN=""             # free — boosts GitHub org mining (tooling track)
+export BUILTWITH_API_KEY=""        # ONLY ~10 free lookups then paid — DNS fingerprint covers most of this
+
+# ── Now PAID — leave unset; the engine substitutes a free source ────────────
+# SECURITYTRAILS_API_KEY   ~$500/mo   →  engine uses RDAP (rdap.org) for WHOIS
+# OPENCORPORATES_API_KEY   €220+/mo   →  engine uses GLEIF + national registries (web login is free)
+# OPENSANCTIONS_API_KEY    paid       →  self-host `yente` (free) or free bulk data download
+# HIBP_API_KEY             ~$60/yr    →  engine uses Hudson Rock (free infostealer API)
 
 # Persist:  echo 'export SHODAN_API_KEY="..."' >> ~/.zshrc
 ```
 
-> **What to ask the user for:** Shodan, Censys, SecurityTrails, and a GitHub token give the
-> biggest jump in coverage for the least effort. OpenCorporates + OpenSanctions matter only
-> for the *corporate* track. Everything else is free without a key. See the **API KEY
-> CHECKLIST** at the bottom for the exact "need / nice-to-have / free" breakdown to surface.
+> **What to ask the user for:** only the genuinely-free keys move the needle — **Shodan,
+> Censys Platform PAT, GitHub token** (all free). Do NOT ask them to pay for SecurityTrails,
+> OpenCorporates API, OpenSanctions, or HIBP — the engine already falls back to RDAP, GLEIF,
+> yente/bulk, and Hudson Rock. See the **API KEY CHECKLIST** at the bottom for the full
+> "free / now-paid + fallback" breakdown.
+
+> **Censys moved to the Platform.** `search.censys.io` now redirects to `platform.censys.io`.
+> Auth is a single **Personal Access Token** (user icon → API Access → Create New Token); free
+> accounts need only the PAT (no organization ID). The old `CENSYS_API_ID`/`CENSYS_API_SECRET`
+> pair is legacy.
 
 ```bash
 # Verify tooling is installed (engine auto-skips whatever is missing):
@@ -133,7 +142,7 @@ related entities). Pivot breadth-first, dedupe, and render the result as a Merma
 
 `PERSON` · `EMAIL` · `USERNAME` · `PHONE` · `ORG/COMPANY` · `DOMAIN` · `IP` · `ASN` ·
 `NETBLOCK` · `CERT` · `SOCIAL_PROFILE` · `DOCUMENT` · `BREACH` · `LEI` · `OWNER` ·
-`SANCTION_ENTITY` · `WALLET/ADDRESS`
+`SANCTION_ENTITY` · `TOOL/SAAS` · `WALLET/ADDRESS`
 
 ### Transform catalog (entity → transform → output)
 
@@ -141,28 +150,37 @@ related entities). Pivot breadth-first, dedupe, and render the result as a Merma
 |---|---|---|---|
 | DOMAIN | theHarvester (emails/names/hosts from search engines) | EMAIL, PERSON | free* |
 | DOMAIN | Hunter.io (email pattern + people) | EMAIL, PERSON | free-tier |
-| DOMAIN | SecurityTrails (WHOIS + DNS history) | OWNER, EMAIL, IP | free-tier |
-| DOMAIN | BuiltWith (tech profile + relationships) | ORG, DOMAIN | free-tier |
+| DOMAIN | **RDAP** (`rdap.org` — structured WHOIS, keyless) | OWNER, EMAIL | free |
+| DOMAIN | ~~SecurityTrails~~ (now ~$500/mo — use RDAP instead) | OWNER, EMAIL, IP | paid |
+| DOMAIN | BuiltWith (tech profile + relationships) | ORG, DOMAIN | ~10 free then paid |
+| DOMAIN | **DNS SaaS fingerprint** (MX/SPF/DMARC/verification TXT → vendors) | TOOL/SAAS, ORG | free |
+| ORG/DOMAIN | **GitHub org mining** (repos → languages, CI configs) | TOOL/SAAS, PERSON | free* |
+| ORG/DOMAIN | **Wayback / StackShare / SecurityTrails history** (past tooling) | TOOL/SAAS (retired) | free/free-tier |
+| TOOL/SAAS | **Ownership dork** (LinkedIn admin titles, CODEOWNERS, aliases) | PERSON, OWNER | free |
 | DOMAIN | DNSDumpster / HackerTarget | IP, NETBLOCK | free |
 | EMAIL | holehe (which sites that email is registered on) | SOCIAL_PROFILE | free |
 | EMAIL | socialscan (account/username availability) | SOCIAL_PROFILE | free |
-| EMAIL | breach lookup (count + source only) | BREACH | varies |
+| EMAIL | **Hudson Rock** (infostealer-infection exposure, keyless) | BREACH | free |
+| EMAIL | ~~HIBP~~ (now ~$60/yr — Hudson Rock covers exposure free) | BREACH | paid |
 | EMAIL | GHunt (Google account → name, photo, reviews) | PERSON, SOCIAL_PROFILE | free** |
 | USERNAME | maigret (3000+ sites) | SOCIAL_PROFILE, PERSON | free |
 | USERNAME | sherlock (400+ sites) | SOCIAL_PROFILE | free |
 | PERSON | CrossLinked / LinkedIn pattern → corp email format | EMAIL | free |
 | PHONE | PhoneInfoga (carrier, region, footprint) | ORG, SOCIAL_PROFILE | free |
-| ORG/COMPANY | OpenCorporates (registry: officers, filings, status) | OWNER, PERSON, ORG | free-tier |
+| ORG/COMPANY | ~~OpenCorporates API~~ (now €220+/mo; web login free) | OWNER, PERSON, ORG | paid API |
+| ORG/COMPANY | GLEIF (LEI → legal name, parent/child) — free OpenCorporates substitute | LEI, ORG | free |
 | ORG/COMPANY | OpenOwnership (beneficial ownership graph) | OWNER, PERSON | free |
-| ORG/COMPANY | GLEIF (LEI → legal name, parent/child) | LEI, ORG | free |
-| PERSON/ORG | OpenSanctions / yente (sanctions, PEP, watchlists) | SANCTION_ENTITY | free** |
+| ORG/DOMAIN | **Hudson Rock** (corporate infostealer exposure, keyless) | BREACH, PERSON | free |
+| PERSON/ORG | OpenSanctions: ~~hosted API~~ paid → **self-host `yente` / free bulk** | SANCTION_ENTITY | free (self-host) |
 | DOMAIN/IP | BGPView (ASN, prefix, org owner, peers) | ASN, NETBLOCK, ORG | free |
-| IP | Shodan / Censys (host intel, certs, orgs) | ORG, CERT, DOMAIN | free-tier |
-| IP | ipinfo (ASN/org/geo) | ORG, ASN | free-tier |
+| IP | Shodan InternetDB (keyless) / Censys **Platform** (free PAT) | ORG, CERT, DOMAIN | free / free-tier |
+| IP | ipinfo (token) **or ipwho.is** (keyless fallback) | ORG, ASN | free |
 | CERT | Censys cert search (SAN → siblings) | DOMAIN, ORG | free-tier |
 | any | SpiderFoot (200+ module aggregator) | * | free*** |
 | any | recon-ng (modular marketplace) | * | free*** |
 | DOCUMENT | exiftool (author, software, GPS, timestamps) | PERSON, USERNAME | free |
+| any | **Claude `WebSearch`** (live open-web search + reasoning) | PERSON, ORG, EMAIL, * | free |
+| any | **Claude `WebFetch`** (read a page → extract the fact; execute emitted dorks) | PERSON, OWNER, TOOL | free |
 | any | Google dorking | DOCUMENT, EMAIL, SOCIAL_PROFILE | free |
 
 \* theHarvester core is free; some engines want keys.  ** GHunt needs a Google cookie; OpenSanctions self-host `yente` is free.  *** core free, individual modules may want API keys.
@@ -205,10 +223,13 @@ sherlock "$SEED_USER" --timeout 10 --print-found \
 # 5) Google account intel from an email (GHunt — needs a Google cookie file once)
 #    ghunt email "$SEED_EMAIL"   # → display name, profile photo, maps reviews, calendar
 
-# 6) Breach EXPOSURE signal — count + source names only, never plaintext
-#    Prefer HIBP if the user has a key; otherwise document the check was run.
+# 6) Exposure signal — count/metadata only, never plaintext
+#    PRIMARY = Hudson Rock infostealer API (FREE, no key):
+curl -s "https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-email?email=$SEED_EMAIL" \
+  | jq '{message, stealer_count: (.stealers|length)}'   # infection COUNT only, no creds
+#    HIBP is now ~$60/yr — only if the user already has a key:
 #    curl -s -H "hibp-api-key: $HIBP_API_KEY" \
-#      "https://haveibeenpwned.com/api/v3/breachedaccount/$SEED_EMAIL?truncateResponse=false" \
+#      "https://haveibeenpwned.com/api/v3/breachedaccount/$SEED_EMAIL?truncateResponse=true" \
 #      | jq -r '.[].Name'   # report breach NAMES + counts only
 
 # 7) Corp email-format inference from a name (no creds, just the pattern)
@@ -234,10 +255,16 @@ DOMAIN="acme.com"
 OUT="osint/corp/$(echo "$DOMAIN" | tr -cd 'a-z0-9.')"
 mkdir -p "$OUT"
 
-# 1) Company registry — officers, status, filings  (OpenCorporates, free-tier key)
+# 1) Company registry — officers, status, filings
+#    NOTE: OpenCorporates API is now PAID (€220+/mo). The web UI (opencorporates.com) is free to
+#    browse. For a free API, prefer GLEIF (step 3) + national registries: SEC EDGAR (US public),
+#    UK Companies House (free key), or the local company register. Keyless OpenCorporates returns
+#    only limited results, kept here as a best-effort:
 curl -s "https://api.opencorporates.com/v0.4/companies/search?q=$(printf %s "$COMPANY" | jq -sRr @uri)&jurisdiction_code=$JURIS${OPENCORPORATES_API_KEY:+&api_token=$OPENCORPORATES_API_KEY}" \
-  | jq -r '.results.companies[].company | "\(.name) | \(.company_number) | \(.jurisdiction_code) | \(.current_status)"' \
+  | jq -r '.results.companies[]?.company | "\(.name) | \(.company_number) | \(.jurisdiction_code) | \(.current_status)"' \
   | tee "$OUT/opencorporates.txt"
+#    US public company (free, no key):
+#    curl -s "https://data.sec.gov/submissions/CIK##########.json" -H 'User-Agent: osint you@example.com'
 
 # 2) Beneficial ownership graph  (OpenOwnership Register, free)
 curl -s "https://register.openownership.org/search.json?q=$(printf %s "$COMPANY" | jq -sRr @uri)" \
@@ -267,15 +294,83 @@ curl -s "https://api.bgpview.io/search?query_term=$(printf %s "$COMPANY" | jq -s
 #    https://builtwith.com/$DOMAIN   (relationships tab links sibling sites by analytics IDs)
 #    curl -s "https://api.builtwith.com/v21/api.json?KEY=$BUILTWITH_API_KEY&LOOKUP=$DOMAIN"
 
-# 7) DNS + WHOIS history → past owners, hidden registrant emails  (SecurityTrails, free-tier)
-curl -s -H "APIKEY: $SECURITYTRAILS_API_KEY" \
-     "https://api.securitytrails.com/v1/domain/$DOMAIN/whois" \
-  | jq '.' | tee "$OUT/securitytrails_whois.json" >/dev/null
+# 7) WHOIS → registrar, dates, registrant org  (RDAP — free, keyless; replaces SecurityTrails)
+curl -s -L "https://rdap.org/domain/$DOMAIN" \
+  | jq '{registrar: [.entities[]?|select(.roles[]?=="registrar")|.vcardArray[1][]?|select(.[0]=="fn")|.[3]][0],
+         events: [.events[]? | "\(.eventAction): \(.eventDate)"]}' \
+  | tee "$OUT/rdap_whois.json"
+#    SecurityTrails (DNS/WHOIS *history*) is now ~$500/mo — only if the user already pays:
+#    curl -s -H "APIKEY: $SECURITYTRAILS_API_KEY" "https://api.securitytrails.com/v1/domain/$DOMAIN/whois"
 ```
 
 **Corporate output:** legal name + registry number, parent/subsidiary chain, beneficial
 owners, sanctions/PEP status, owned ASNs/netblocks, and brand tech footprint — feeding
 `ORG`/`OWNER`/`LEI`/`SANCTION_ENTITY`/`ASN` nodes.
+
+---
+
+## TRACK B+ — CORPORATE TOOLING & TECH-STACK INTELLIGENCE (past + present + ownership)
+
+Goal: enumerate **every tool / software / SaaS / vendor a company uses — past AND present** —
+each backed by a **source link + snippet**, then map **who owns/administers each tool**. This
+runs automatically inside the corporate track (`corp_tooling()` in the engine) and **always
+produces a `REPORT.md`** with a Tooling Inventory + Ownership/Access map.
+
+### 1. DNS SaaS fingerprinting (keyless — strongest present-tooling signal)
+
+A company's DNS records leak its SaaS stack because vendors require verification/SPF records.
+The engine resolves `MX`, root `TXT`, and `_dmarc` TXT, then maps tokens → vendors:
+
+| DNS signal | Reveals |
+|---|---|
+| `MX` host | Email provider (Google Workspace, Microsoft 365, Proofpoint, Mimecast, Zoho…) |
+| SPF `include:` | Any SaaS that sends mail as the domain (Salesforce, Zendesk, Mailchimp, SendGrid, HubSpot, Marketo, Atlassian, Intercom…) |
+| `_dmarc` `rua=`/`ruf=` | DMARC processor (Dmarcian, Valimail, Agari, Red Sift, MXToolbox…) |
+| `*-site/domain-verification` TXT | SaaS sign-ups (Slack, Zoom, DocuSign, Adobe, Figma, Dropbox, Atlassian, Stripe, Notion, Miro, OneTrust, Canva, Webex…) |
+
+```bash
+# What the engine runs (reproduce manually):
+dig +short MX  acme.com
+dig +short TXT acme.com           # SPF includes + verification tokens
+dig +short TXT _dmarc.acme.com    # DMARC processor
+# Each matched record IS the source + snippet for that tool in the report.
+```
+
+### 2. Present + historical tech stack
+
+- **Present:** GitHub org repos → languages + CI configs (`.github/workflows`); BuiltWith API
+  (keyed) or the free `builtwith.com/<domain>` lookup; StackShare profile.
+- **Past:** Wayback snapshots of the careers/jobs pages and StackShare profile; SecurityTrails
+  **historical TXT records** (keyed) — retired verification tokens reveal SaaS since dropped.
+  The engine emits ready-to-click Wayback/StackShare/BuiltWith pointer URLs every run.
+
+### 3. Ownership / access mapping (who administers each tool)
+
+For every discovered tool the engine emits a **ready-to-click dork** so you can find the human
+who owns it — never auto-scraped, just URLs you click:
+
+- LinkedIn title dorks: `site:linkedin.com/in "Salesforce Admin" "Acme"`, `"Okta"`, `"Workday"`…
+- GitHub `CODEOWNERS` + maintainers + `.github/workflows` search across the org.
+- Tool email aliases (`admin@`, `it@`, `helpdesk@`) and leaked contact sheets.
+
+### 4. Every finding row carries provenance
+
+The Tooling Inventory in `REPORT.md` is: **Tool · Status (present/past) · Category · Confidence
+(# independent signals) · Source link · Snippet (the actual record/excerpt).** Confidence rises
+when more than one signal (e.g. both an SPF include *and* a verification TXT) points to the same
+vendor.
+
+```bash
+# Run it (corp tooling + always-on report are automatic on the corp/both tracks):
+./tools/osint_engine.sh --seed acme.com --track corp
+#   → osint/corp/<slug>/REPORT.md          (Tooling Inventory + Ownership map, always written)
+#   → osint/corp/<slug>/corp_tooling.tsv   (raw rows: status·category·tool·source·snippet)
+#   → osint/corp/<slug>/ownership_dorks.txt + past_tooling_pointers.txt
+```
+
+> **Scope note:** tool-ownership mapping enumerates named employees — confirm the program
+> permits personnel OSINT before acting on those dorks. Discovering the *stack* (DNS/GitHub) is
+> passive third-party data; clicking the people-dorks profiles individuals.
 
 ---
 
@@ -292,12 +387,17 @@ shodan host "$IP" 2>/dev/null | tee "osint/infra/$IP.shodan.txt"
 #   Or keyless InternetDB (no key, passive): https://internetdb.shodan.io/$IP
 curl -s "https://internetdb.shodan.io/$IP" | jq '.'
 
-# Censys host + cert pivots — SAN names reveal sibling domains  (free-tier key)
-#   censys view "$IP"           # host detail
-#   censys search "services.tls.certificates.leaf_data.subject.organization: \"Acme\""
+# Censys PLATFORM host + cert pivots — SAN names reveal sibling domains  (free PAT)
+#   platform.censys.io (free account → Personal Access Token). New Platform API:
+#   curl -s -H "Authorization: Bearer $CENSYS_PLATFORM_TOKEN" \
+#     "https://api.platform.censys.io/v3/global/asset/host/$IP"
 
-# ipinfo — ASN, org, geo  (free-tier token)
-curl -s "https://ipinfo.io/$IP/json${IPINFO_TOKEN:+?token=$IPINFO_TOKEN}" | jq '.'
+# ipinfo (token) — ASN, org, geo;  or ipwho.is free/keyless fallback
+if [ -n "${IPINFO_TOKEN:-}" ]; then
+  curl -s "https://ipinfo.io/$IP/json?token=$IPINFO_TOKEN" | jq '.'
+else
+  curl -s "https://ipwho.is/$IP" | jq '{org: .connection.org, asn: .connection.asn, isp: .connection.isp}'
+fi
 
 # BGPView — IP → prefix → ASN → org owner, and peers
 curl -s "https://api.bgpview.io/ip/$IP" \
@@ -345,6 +445,67 @@ RC
 recon-ng -r /tmp/recon.rc
 # Export the workspace to feed the graph:  modules load reporting/csv; run
 ```
+
+---
+
+## TRACK C — CLAUDE AS AN OSINT ANALYST (web search + reasoning, not just orchestration)
+
+**Claude is itself an OSINT transform, not only the thing that runs the shell engine.** Many
+sources have no CLI/API wrapper — news, press releases, LinkedIn/job posts, court & registry
+filings, blog/forum/social context, breach writeups, conference talks, data-broker pages,
+archived snapshots. Claude reaches those with its **`WebSearch`** and **`WebFetch`** tools and,
+crucially, **reasons over and corroborates** everything the engine returns. Run this *alongside*
+the engine and merge the results into one graph + dossier.
+
+### What Claude does that the engine can't
+
+1. **Open-web search** — `WebSearch` for the entity across the live web (the engine only hits
+   fixed APIs). Find real names, roles, affiliations, events, mentions, leaks.
+2. **Execute the engine's emitted dorks** — `ownership_dorks.txt` and `past_tooling_pointers.txt`
+   are *URLs*. Claude turns them into findings: `WebFetch` / `WebSearch` each one and extract the
+   named admin, the StackShare stack, the Wayback careers snapshot, etc.
+3. **Read & interpret** — `WebFetch` a promising result and pull the specific fact (the director's
+   name, the parent company, the tool an employee says they administer). Interpret JSON the engine
+   saved (`hudsonrock*.json`, `rdap_domain.json`) into plain findings.
+4. **Corroborate** — require **≥2 independent sources** before asserting a link; Claude is the one
+   that judges whether two sources are truly independent.
+5. **Synthesize** — dedupe entities, assign confidence (# sources), and write the narrative,
+   graph, and Next-Steps.
+
+### Claude search-plan templates (run with `WebSearch`, then `WebFetch` the hits)
+
+| Seed | Searches Claude runs |
+|---|---|
+| **Person / name** | `"Full Name" <company>`; `"Full Name" linkedin`; `"Full Name" (CTO OR founder OR director)`; `"Full Name" email OR contact`; `"Full Name" conference OR talk OR podcast` |
+| **Email** | the address in quotes; the local-part as a username; `"email" breach OR leak OR dump`; the domain's email-format pattern |
+| **Username** | `"handle"` across `site:github.com`, `site:reddit.com`, `site:x.com`, `site:keybase.io`; reuse of the handle on forums |
+| **Company** | `"Company" (CEO OR founder OR "board of directors")`; `"Company" acquisition OR subsidiary OR "parent company"`; `"Company" data breach`; `"Company" lawsuit OR SEC OR filing`; `"Company" layoffs OR funding` |
+| **Company tooling/owner** | execute each `ownership_dorks.txt` URL; `site:linkedin.com/in "<Vendor> Admin" "<Company>"`; `"<Company>" "we use" <vendor>`; `"<Company>" careers <tech>` (past + present) |
+| **Domain** | `"domain" owner OR registrant`; `site:domain (team OR about OR leadership)`; news mentioning the domain; Wayback of `/about`, `/team`, `/careers` |
+| **Phone** | the number in several formats; `"number" (spam OR scam OR business)`; reverse-lookup result pages |
+
+### Hard rules for Claude's participation
+
+- **Passive & third-party only.** Search engines and archives, *not* the subject's own systems.
+  Never use `WebFetch` to probe the target's infrastructure for vulnerabilities — that is recon,
+  and it is out of scope for this skill. Reading a company's *public* About/Team page is fine.
+- **Confirm scope** before naming individuals (personnel OSINT is excluded on many programs).
+- **Attribution ≠ accusation** — "associated with", corroborated by ≥2 sources; never "is guilty of".
+- **Breach/exposure = metadata only** — counts, source names, infection dates; never paste creds.
+- **Cite every claim** — each finding row carries the source URL Claude read.
+
+### How it fits the run
+
+```
+engine (shell)  ─┐
+                 ├─►  Claude merges →  Mermaid graph  +  versioned dossier
+Claude WebSearch/WebFetch + executed dorks ─┘
+```
+
+Claude runs its searches, executes the engine's dork/pointer URLs, fetches and reads the best
+results, then folds the new `PERSON/EMAIL/ORG/TOOL/OWNER` entities into the same graph with source
+links and confidence. The engine's `REPORT.md` ends with a **"For the Claude analyst — run these
+next"** block listing exactly which dorks/pointers to execute.
 
 ---
 
@@ -411,6 +572,11 @@ actually support a conclusion — prune dead infra branches.
 Write a numbered, versioned dossier to the assessment directory (same convention as
 `burp-analysis` / `red-team-llm`).
 
+> **A report is ALWAYS produced.** The engine writes a machine-built `REPORT.md` into the output
+> dir on *every* run (any track) — for corporate runs it is pre-filled with the Tooling Inventory
+> and Tool Ownership/Access map. Use that `REPORT.md` as the raw input and promote it into the
+> polished, versioned `{Subject}_OSINT_Dossier.md` below (add the Mermaid graph + narrative).
+
 - No prior report → `{Subject}_OSINT_Dossier.md`
 - One exists → `{Subject}_OSINT_Dossier_2.md` (include a **delta vs prior** section)
 
@@ -436,6 +602,18 @@ Write a numbered, versioned dossier to the assessment directory (same convention
 | Entity | Registry/Source | Number/LEI | Status | Detail |
 |---|---|---|---|---|
 (legal identity, ownership chain, beneficial owners, sanctions/PEP, owned ASNs)
+
+## 4a. Corporate Tooling & Tech-Stack Inventory (present + past)
+| Tool / Vendor | Status (present/past) | Category | Confidence (# sources) | Source link | Snippet |
+|---|---|---|---|---|---|
+(every SaaS/vendor/software — each row MUST carry a source link + the actual record/excerpt;
+pull straight from the engine's `corp_tooling.tsv` / `REPORT.md`)
+
+## 4b. Tool Ownership / Access Map
+| Tool | Owner / Admin (name, title) | Evidence (LinkedIn/CODEOWNERS/alias) | Source link |
+|---|---|---|---|
+(who administers each tool — resolve the engine's `ownership_dorks.txt` URLs to named people
+only if the program permits personnel OSINT)
 
 ## 5. Infrastructure Ownership
 | IP/ASN/Netblock | Owner Org | Source | Note |
@@ -463,23 +641,35 @@ Write a numbered, versioned dossier to the assessment directory (same convention
 
 When the user asks "what keys do you need?", present this:
 
+**Genuinely free — worth getting:**
+
 | Tool / Source | Key env var | Cost | Track | Priority |
 |---|---|---|---|---|
 | Shodan | `SHODAN_API_KEY` | Free account (limited) | Infra | **High** |
-| Censys | `CENSYS_API_ID` / `CENSYS_API_SECRET` | Free tier | Infra | **High** |
-| SecurityTrails | `SECURITYTRAILS_API_KEY` | Free 50/mo | Infra/Corp | **High** |
-| GitHub | `GITHUB_TOKEN` | Free | Both (recon-ng/theHarvester) | **High** |
-| OpenCorporates | `OPENCORPORATES_API_KEY` | Free for researchers (apply) | Corp | Med |
-| OpenSanctions | `OPENSANCTIONS_API_KEY` | Hosted key, or self-host `yente` free | Corp | Med |
-| BuiltWith | `BUILTWITH_API_KEY` | Free tier (web lookup keyless) | Corp | Med |
-| ipinfo | `IPINFO_TOKEN` | Free 50k/mo | Infra | Med |
+| Censys **Platform** | `CENSYS_PLATFORM_TOKEN` | Free account, PAT only (no org ID) | Infra | **High** |
+| GitHub | `GITHUB_TOKEN` | Free | Both (GitHub org mining, recon-ng) | **High** |
+| ipinfo | `IPINFO_TOKEN` | Free 50k/mo (else ipwho.is, free) | Infra | Med |
 | Hunter.io | `HUNTER_API_KEY` | Free 25/mo | People | Med |
-| HaveIBeenPwned | `HIBP_API_KEY` | Paid (~$ small) | People | Optional |
-| **No key needed** | — | Free | — | BGPView · GLEIF · OpenOwnership · DNSDumpster · maigret · sherlock · holehe · socialscan · PhoneInfoga · theHarvester(core) · recon-ng(core) · SpiderFoot(core) · exiftool · Shodan InternetDB |
+| BuiltWith | `BUILTWITH_API_KEY` | ~10 free lookups then paid | Corp | Low |
 
-> Minimum viable: **none** (free tools cover both tracks). Best ROI to ask for:
-> **Shodan + Censys + SecurityTrails + GitHub token**. Add **OpenCorporates + OpenSanctions**
-> only when the corporate/ownership/sanctions track is in play.
+**Now PAID — do NOT ask the user to buy; the engine uses the free fallback:**
+
+| ~~Tool~~ | Env var | Now costs | Free fallback (automatic) |
+|---|---|---|---|
+| SecurityTrails | `SECURITYTRAILS_API_KEY` | ~$500/mo | **RDAP** (`rdap.org`) |
+| OpenCorporates API | `OPENCORPORATES_API_KEY` | €220+/mo (web free) | **GLEIF** + national registries |
+| OpenSanctions API | `OPENSANCTIONS_API_KEY` | paid hosted | **self-host `yente`** / free bulk |
+| HaveIBeenPwned | `HIBP_API_KEY` | ~$60/yr | **Hudson Rock** (free) |
+
+**No key needed:** RDAP · Hudson Rock · ipwho.is · DNS SaaS fingerprint · BGPView · GLEIF ·
+OpenOwnership · DNSDumpster · maigret · sherlock · holehe · socialscan · PhoneInfoga ·
+theHarvester(core) · recon-ng(core) · SpiderFoot(core) · exiftool · Shodan InternetDB.
+**Extra free (manual):** SEC EDGAR · UK Companies House · OCCRP Aleph · Wayback · AlienVault OTX ·
+URLScan · PeeringDB · bgp.he.net · IntelligenceX(free tier).
+
+> Minimum viable: **none** (free tools cover both tracks end to end). Best ROI to ask for:
+> **Shodan + Censys Platform PAT + GitHub token** (all free). Skip every paid source above —
+> RDAP / GLEIF / yente / Hudson Rock already substitute for them.
 
 ---
 
@@ -490,8 +680,10 @@ When the user asks "what keys do you need?", present this:
 | An email | holehe → socialscan → GHunt | maigret on derived username, breach signal |
 | A username | maigret + sherlock | holehe on derived emails, profile scrape |
 | A company name | OpenCorporates → GLEIF → OpenOwnership | OpenSanctions, BGPView for its ASNs |
-| A domain (ownership) | SecurityTrails WHOIS → BGPView | BuiltWith relationships, Censys certs |
-| An IP / ASN | BGPView → ipinfo → Shodan/Censys | reverse to org → OpenCorporates |
+| A company's tool/SaaS stack | DNS SaaS fingerprint → GitHub org mining | Wayback/StackShare (past), ownership dorks |
+| A domain (ownership) | RDAP WHOIS → BGPView | DNS SaaS fingerprint, Censys Platform certs |
+| An IP / ASN | BGPView → ipinfo/ipwho.is → Shodan InternetDB | reverse to org → GLEIF |
 | A phone number | PhoneInfoga | socialscan/maigret on derived handle |
 | A document | exiftool | author → maigret, dorking |
 | "Just go wide" | SpiderFoot (passive modules) or recon-ng | verify each hit with its targeted tool |
+| **Anything the tools miss** | **Claude `WebSearch`** (news, LinkedIn, filings, leaks) | **`WebFetch`** the best hits + execute the engine's emitted dorks |

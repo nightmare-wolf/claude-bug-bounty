@@ -37,10 +37,18 @@ phone) and which track to run.
 2. Picks the track: `--people`, `--corp`, or `--both` (auto-infers if omitted).
 3. Runs the matching transforms from the `osint` skill (theHarvester, holehe, socialscan,
    maigret, sherlock, OpenCorporates, OpenOwnership, GLEIF, OpenSanctions, BGPView, Shodan,
-   Censys, SecurityTrails, BuiltWith, exiftool, SpiderFoot/recon-ng for breadth).
+   Censys Platform, RDAP, Hudson Rock, ipwho.is, exiftool, SpiderFoot/recon-ng for breadth).
 4. Skips any source whose tool/API key is missing (degrades gracefully) and notes the gap.
-5. Dedupes entities and builds a Mermaid entity-relationship graph.
-6. Writes a **versioned dossier** to the assessment directory (with a delta if one exists).
+5. **Claude joins the search (Track C):** uses `WebSearch`/`WebFetch` to cover what the CLI tools
+   can't (news, LinkedIn, filings, leaks, archives) and to **execute the engine's emitted dork/
+   history URLs**, then corroborates and folds the results into the same graph + dossier.
+6. **For corporate runs:** fingerprints the company's **tool/SaaS/vendor stack (past + present)**
+   via DNS records (MX/SPF/DMARC/verification TXT), GitHub org mining, and Wayback/BuiltWith
+   history — each finding with a **source link + snippet** — and emits **tool-ownership dorks**.
+7. **Always writes a `REPORT.md`** in the output dir (every run, any track) — for corporate runs
+   pre-filled with the Tooling Inventory + Tool Ownership/Access map + a "For the Claude analyst" task list.
+8. Dedupes entities and builds a Mermaid entity-relationship graph.
+9. Promotes `REPORT.md` into a **versioned dossier** in the assessment directory (delta if one exists).
 
 ## Steps
 
@@ -57,10 +65,15 @@ phone) and which track to run.
 
 ### Step 2: Surface API-key status
 
-First read `skills/osint/API_KEYS.md` — the user fills in keys there. Export the matching env
-vars for any filled-in row. Then run `./tools/osint_engine.sh --keys` and tell the user which
-sources are live vs skipped. If high-value keys are missing (Shodan, Censys,
-SecurityTrails, GitHub token), mention them — the user has offered to obtain keys.
+First read `skills/osint/API_KEYS.md` (template) and `API_KEYS_FILLED.md` if present (the user's
+real, git-ignored keys). Export the matching env vars for any filled-in row. Then run
+`./tools/osint_engine.sh --keys` and tell the user which sources are live vs skipped.
+
+Only the **genuinely free** keys are worth requesting: **Shodan, Censys Platform PAT, GitHub
+token** (all free). Do **not** ask the user to pay for SecurityTrails (~$500/mo), OpenCorporates
+API (€220+/mo), OpenSanctions, or HIBP — the engine automatically falls back to the free
+equivalents: **RDAP** (WHOIS), **GLEIF** (registry), **yente/bulk** (sanctions), **Hudson Rock**
+(breach exposure), **ipwho.is** (IP/ASN).
 
 ### Step 3: Run the engine
 
@@ -72,6 +85,28 @@ SecurityTrails, GitHub token), mention them — the user has offered to obtain k
 For breadth, optionally drive SpiderFoot (passive modules) or recon-ng as documented in the
 skill. Verify any aggregator hit with its targeted single-purpose tool before trusting it.
 
+On corporate/both runs the engine also produces, in the output dir:
+- `REPORT.md` — always written; Tooling Inventory + Ownership/Access map pre-filled.
+- `corp_tooling.tsv` — raw tooling rows (status · category · tool · source · snippet).
+- `ownership_dorks.txt` + `past_tooling_pointers.txt` — ready-to-click ownership/history URLs.
+
+### Step 3.5: Claude joins the search (Track C — do NOT skip)
+
+You (Claude) are an active OSINT source, not just the engine's runner. The shell engine only hits
+fixed APIs; you reach everything else with **`WebSearch`** and **`WebFetch`**. Now:
+
+1. **Search the open web** for the seed using the entity-type query templates in the skill's
+   **TRACK C** (news, LinkedIn, registry/court filings, job posts, leaks, blogs, archives).
+2. **Execute the engine's emitted URLs** — `WebFetch`/`WebSearch` each line in `ownership_dorks.txt`
+   (resolve to the named admin/owner) and `past_tooling_pointers.txt` (confirm past+present tooling).
+   The bottom of `REPORT.md` lists these as "For the Claude analyst — run these next".
+3. **Read & interpret** the best hits and the engine's JSON (`hudsonrock*.json`, `rdap_domain.json`).
+4. **Corroborate** every link with ≥2 independent sources before asserting it.
+
+Guardrails: passive only (search engines & archives, **never** probe the subject's own systems —
+that's recon), confirm scope before naming individuals, attribution ≠ accusation, exposure =
+metadata only. Fold your findings into the same graph and dossier with a source URL per claim.
+
 ### Step 4: Build the entity graph
 
 Assemble unique entities into a Mermaid `graph TD`, edges labeled by the transform/source,
@@ -80,11 +115,16 @@ colored by class (person/org/infra/risk). Prune dead infra branches. See the ski
 
 ### Step 5: Write the versioned dossier
 
+A `REPORT.md` already exists (the engine always writes one). Promote it into the polished,
+versioned dossier — add the Mermaid graph and narrative:
+
 - No prior report → `{Subject}_OSINT_Dossier.md`
 - One exists → `{Subject}_OSINT_Dossier_2.md` with a **delta vs prior** section.
 
 Use the dossier template from the skill (Executive Summary → Entity Graph → People → Corporate
-→ Infra Ownership → Sanctions/PEP → Source Log → OPSEC Notes → Next Steps).
+→ **Corporate Tooling Inventory** → **Tool Ownership/Access Map** → Infra Ownership →
+Sanctions/PEP → Source Log → OPSEC Notes → Next Steps). For corporate subjects the Tooling
+Inventory and Ownership map are mandatory, each tooling row carrying a source link + snippet.
 
 ## Output location
 

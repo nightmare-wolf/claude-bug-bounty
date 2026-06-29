@@ -16,6 +16,9 @@ config.json
 secrets.txt
 api_keys.txt
 .private/
+# Filled-in OSINT key sheets — contain LIVE keys, never commit
+*_FILLED.md
+**/API_KEYS_FILLED.md
 
 # Nested local clones / sub-repos (not tracked)
 claude-bug-bounty/

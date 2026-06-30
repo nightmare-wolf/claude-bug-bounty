@@ -20,6 +20,7 @@ not this file directly), e.g. `export SHODAN_API_KEY="..."` in `~/.zshrc`.
 | Censys org ID *(paid plans only)* | `CENSYS_ORG_ID` |  | Only for Starter/Enterprise | Infra | platform.censys.io (skip on free) |
 | ipinfo | `IPINFO_TOKEN` |  | Free 50k/mo | Infra | https://ipinfo.io/account/token |
 | Hunter.io | `HUNTER_API_KEY` |  | Free 25/mo | People | https://hunter.io/api-keys |
+| DomScan | `DOMSCAN_API_KEY` |  | Free 10k credits/mo | Corp / Infra | https://domscan.net (key prefix `dsk_`) |
 | GitHub | `GITHUB_TOKEN` |  | Free | Both | https://github.com/settings/tokens |
 | BuiltWith | `BUILTWITH_API_KEY` |  | **Only ~10 free lookups**, then paid | Corp | https://api.builtwith.com |
 

@@ -52,6 +52,7 @@ _key_status() {
     "BuiltWith (10 free lookups)|BUILTWITH_API_KEY"
     "ipinfo (free 50k/mo)|IPINFO_TOKEN"
     "Hunter.io (free 25/mo)|HUNTER_API_KEY"
+    "DomScan (free 10k/mo)|DOMSCAN_API_KEY"
     "GitHub (free)|GITHUB_TOKEN"
     "SecurityTrails (PAID ~\$500/mo)|SECURITYTRAILS_API_KEY"
     "OpenCorporates (PAID API)|OPENCORPORATES_API_KEY"
@@ -359,6 +360,28 @@ corp_tooling() {
     else skip "Hudson Rock domain: no/invalid response"; fi
   fi
 
+  # ── DomScan domain intelligence (keyed: DOMSCAN_API_KEY, free 10k/mo) ──
+  if [[ -n "$domain" && -n "${DOMSCAN_API_KEY:-}" ]]; then
+    log "DomScan — WHOIS + typosquatting (phishing surface) + reputation..."
+    local DSU="https://domscan.net/v1" DSA="Authorization: Bearer $DOMSCAN_API_KEY"
+    curl -s -H "$DSA" "$DSU/whois?domain=$domain"      > "$out/domscan_whois.json" 2>/dev/null || true
+    curl -s -H "$DSA" "$DSU/typos?domain=$domain"      > "$out/domscan_typos.json" 2>/dev/null || true
+    curl -s -H "$DSA" "$DSU/reputation?domain=$domain" > "$out/domscan_reputation.json" 2>/dev/null || true
+    if jq -e 'has("is_newly_registered")' "$out/domscan_whois.json" >/dev/null 2>&1; then
+      ok "DomScan WHOIS: registrar=$(jq -r '.registrar // "?"' "$out/domscan_whois.json" 2>/dev/null) age=$(jq -r '.domain_age_years // "?"' "$out/domscan_whois.json" 2>/dev/null)y newly_registered=$(jq -r '.is_newly_registered' "$out/domscan_whois.json" 2>/dev/null)"
+    fi
+    if jq -e '.registered_typos' "$out/domscan_typos.json" >/dev/null 2>&1; then
+      local nt; nt=$(jq -r '(.registered_typos // []) | length' "$out/domscan_typos.json" 2>/dev/null || echo 0)
+      if [ "${nt:-0}" -gt 0 ]; then
+        warn "DomScan: $nt REGISTERED typosquat domain(s) (threat=$(jq -r '.threat_level // "?"' "$out/domscan_typos.json" 2>/dev/null)) — phishing surface → domscan_typos.json"
+      else ok "DomScan typos: none registered (threat=$(jq -r '.threat_level // "?"' "$out/domscan_typos.json" 2>/dev/null))"; fi
+    fi
+    [ -s "$out/domscan_reputation.json" ] && jq -e '.reputation_score' "$out/domscan_reputation.json" >/dev/null 2>&1 \
+      && hit "DomScan reputation: $(jq -r '.reputation_score' "$out/domscan_reputation.json" 2>/dev/null)/100 grade $(jq -r '.grade // "?"' "$out/domscan_reputation.json" 2>/dev/null) (risk=$(jq -r '.risk_level // "?"' "$out/domscan_reputation.json" 2>/dev/null))"
+  elif [[ -n "$domain" ]]; then
+    skip "DOMSCAN_API_KEY unset — DomScan whois/typosquatting/reputation skipped (free 10k/mo: domscan.net)"
+  fi
+
   # ── Ownership / access mapping (dork emitter) ──
   log "Emitting tool-ownership dork URLs"
   if [ -s "$TOOL_TSV" ]; then
@@ -492,6 +515,28 @@ gen_report() {
       echo "## Corporate Credential Exposure (Hudson Rock — free)"
       echo
       echo "- Infostealer infections: **$(jq -r '.total // .totalStealers // "?"' "$out/hudsonrock_domain.json" 2>/dev/null)**  ·  employees exposed: **$(jq -r '.employees // .total_employees // "?"' "$out/hudsonrock_domain.json" 2>/dev/null)**  (metadata only, no credentials — \`hudsonrock_domain.json\`)"
+      echo
+    fi
+
+    if [ -s "$out/domscan_typos.json" ] || [ -s "$out/domscan_reputation.json" ] || [ -s "$out/domscan_whois.json" ]; then
+      echo "## Domain Intelligence (DomScan)"
+      echo
+      if jq -e '.reputation_score' "$out/domscan_reputation.json" >/dev/null 2>&1; then
+        echo "- **Reputation:** $(jq -r '.reputation_score' "$out/domscan_reputation.json" 2>/dev/null)/100  grade $(jq -r '.grade // "?"' "$out/domscan_reputation.json" 2>/dev/null)  ·  risk $(jq -r '.risk_level // "?"' "$out/domscan_reputation.json" 2>/dev/null)  (\`domscan_reputation.json\`)"
+      fi
+      if jq -e 'has("is_newly_registered")' "$out/domscan_whois.json" >/dev/null 2>&1; then
+        echo "- **WHOIS:** registrar $(jq -r '.registrar // "?"' "$out/domscan_whois.json" 2>/dev/null)  ·  age $(jq -r '.domain_age_years // "?"' "$out/domscan_whois.json" 2>/dev/null)y  ·  newly-registered: $(jq -r '.is_newly_registered' "$out/domscan_whois.json" 2>/dev/null)  (\`domscan_whois.json\`)"
+      fi
+      if jq -e '.registered_typos' "$out/domscan_typos.json" >/dev/null 2>&1; then
+        local dtn; dtn=$(jq -r '(.registered_typos // []) | length' "$out/domscan_typos.json" 2>/dev/null || echo 0)
+        echo "- **Typosquatting / phishing surface:** $dtn registered look-alike domain(s)  ·  threat $(jq -r '.threat_level // "?"' "$out/domscan_typos.json" 2>/dev/null)  (\`domscan_typos.json\`)"
+        if [ "${dtn:-0}" -gt 0 ]; then
+          echo
+          echo "  | Registered typosquat | (verify before reporting) |"
+          echo "  |---|---|"
+          jq -r '.registered_typos[]? | "  | \(.domain // .fqdn // .) |  |"' "$out/domscan_typos.json" 2>/dev/null | head -15
+        fi
+      fi
       echo
     fi
 

@@ -60,6 +60,7 @@ export SHODAN_API_KEY=""           # free account, limited credits — internet 
 export CENSYS_PLATFORM_TOKEN=""    # free Censys PLATFORM account → PAT (platform.censys.io); no org ID on free
 export IPINFO_TOKEN=""             # free 50k/mo — ASN/geo/org (else engine uses ipwho.is, free)
 export HUNTER_API_KEY=""           # free 25/mo — email pattern + verification
+export DOMSCAN_API_KEY=""          # free 10k/mo — WHOIS + typosquatting (phishing surface) + domain reputation
 export GITHUB_TOKEN=""             # free — boosts GitHub org mining (tooling track)
 export BUILTWITH_API_KEY=""        # ONLY ~10 free lookups then paid — DNS fingerprint covers most of this
 
@@ -151,6 +152,7 @@ related entities). Pivot breadth-first, dedupe, and render the result as a Merma
 | DOMAIN | theHarvester (emails/names/hosts from search engines) | EMAIL, PERSON | free* |
 | DOMAIN | Hunter.io (email pattern + people) | EMAIL, PERSON | free-tier |
 | DOMAIN | **RDAP** (`rdap.org` — structured WHOIS, keyless) | OWNER, EMAIL | free |
+| DOMAIN | **DomScan** (WHOIS + **typosquatting**/phishing surface + reputation) | OWNER, RISK, ORG | free 10k/mo |
 | DOMAIN | ~~SecurityTrails~~ (now ~$500/mo — use RDAP instead) | OWNER, EMAIL, IP | paid |
 | DOMAIN | BuiltWith (tech profile + relationships) | ORG, DOMAIN | ~10 free then paid |
 | DOMAIN | **DNS SaaS fingerprint** (MX/SPF/DMARC/verification TXT → vendors) | TOOL/SAAS, ORG | free |
@@ -650,6 +652,7 @@ When the user asks "what keys do you need?", present this:
 | GitHub | `GITHUB_TOKEN` | Free | Both (GitHub org mining, recon-ng) | **High** |
 | ipinfo | `IPINFO_TOKEN` | Free 50k/mo (else ipwho.is, free) | Infra | Med |
 | Hunter.io | `HUNTER_API_KEY` | Free 25/mo | People | Med |
+| DomScan | `DOMSCAN_API_KEY` | Free 10k/mo | Corp/Infra (WHOIS, typosquatting, reputation) | Med |
 | BuiltWith | `BUILTWITH_API_KEY` | ~10 free lookups then paid | Corp | Low |
 
 **Now PAID — do NOT ask the user to buy; the engine uses the free fallback:**

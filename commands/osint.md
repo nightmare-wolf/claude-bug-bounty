@@ -37,7 +37,8 @@ phone) and which track to run.
 2. Picks the track: `--people`, `--corp`, or `--both` (auto-infers if omitted).
 3. Runs the matching transforms from the `osint` skill (theHarvester, holehe, socialscan,
    maigret, sherlock, OpenCorporates, OpenOwnership, GLEIF, OpenSanctions, BGPView, Shodan,
-   Censys Platform, RDAP, Hudson Rock, ipwho.is, exiftool, SpiderFoot/recon-ng for breadth).
+   Censys Platform, RDAP, Hudson Rock, ipwho.is, DomScan (WHOIS/typosquatting/reputation),
+   exiftool, SpiderFoot/recon-ng for breadth).
 4. Skips any source whose tool/API key is missing (degrades gracefully) and notes the gap.
 5. **Claude joins the search (Track C):** uses `WebSearch`/`WebFetch` to cover what the CLI tools
    can't (news, LinkedIn, filings, leaks, archives) and to **execute the engine's emitted dork/

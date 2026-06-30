@@ -101,6 +101,7 @@ ARSENAL_TOOLS=(
   "crosslinked|osint|pipx install crosslinked|github.com/m8sec/CrossLinked"
   "exiftool|osint|brew install exiftool|github.com/exiftool/exiftool"
   "shodan|osint|pipx install shodan|github.com/achillean/shodan-python"
+  "domscan|osint|API only (no CLI) — free 10k/mo key at domscan.net, export DOMSCAN_API_KEY=dsk_...|domscan.net"
   # ── DNS history / origin IP ─────────────────────────────────────────────
   "sublert|recon|pipx install sublert|github.com/yassineaboukir/sublert"
   # ── Misc ────────────────────────────────────────────────────────────────
@@ -122,7 +123,18 @@ _print_status() {
   local sorted
   sorted=$(printf '%s\n' "${ARSENAL_TOOLS[@]}" | sort -t'|' -k2,2 -k1,1)
   while IFS='|' read -r name cat hint url; do
-    if _have "$name"; then
+    # API-only sources (hint starts "API only") have no binary — check the env
+    # var <NAME>_API_KEY instead of PATH so a working key reads as installed.
+    if [[ "$hint" == "API only"* ]]; then
+      local var; var="$(printf '%s' "$name" | tr 'a-z' 'A-Z')_API_KEY"
+      if [ -n "${!var:-}" ]; then
+        printf "\033[0;32m%-18s\033[0m %-10s \033[0;32m%-8s\033[0m %s\n" "$name" "$cat" "KEY OK" "$url"
+        installed=$((installed + 1))
+      else
+        printf "\033[1;33m%-18s\033[0m %-10s \033[1;33m%-8s\033[0m %s\n" "$name" "$cat" "NO KEY" "$url"
+        missing=$((missing + 1))
+      fi
+    elif _have "$name"; then
       printf "\033[0;32m%-18s\033[0m %-10s \033[0;32m%-8s\033[0m %s\n" "$name" "$cat" "OK" "$url"
       installed=$((installed + 1))
     else
